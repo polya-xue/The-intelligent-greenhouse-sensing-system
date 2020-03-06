@@ -1,0 +1,8 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\DS18B20.obj",
+".\Objects\DHT11.obj",
+".\Objects\Timer.obj",
+".\Objects\CRC16.obj" 
+TO ".\Objects\main" 
+PRINT(".\Listings\main.m51") RAMSIZE(256) 

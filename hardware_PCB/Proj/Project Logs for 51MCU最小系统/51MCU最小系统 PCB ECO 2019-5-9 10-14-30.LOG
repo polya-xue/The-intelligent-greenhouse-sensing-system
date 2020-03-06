@@ -1,0 +1,9 @@
+Added Component: Designator=C1(CAP_2.54_NO_ele)
+Added Component: Designator=C2(CAP_2.54_NO_ele)
+Added Pin To Net: NetName=XTAL2 Pin=C1-1
+Added Pin To Net: NetName=GND Pin=C1-2
+Added Pin To Net: NetName=XTAL1 Pin=C2-1
+Added Pin To Net: NetName=GND Pin=C2-2
+Added Member To Class: ClassName=51MCU最小系统 Member=Component C1 22pf
+Added Member To Class: ClassName=51MCU最小系统 Member=Component C2 22pf
+Added Room: Name=51MCU最小系统

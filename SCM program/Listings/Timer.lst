@@ -1,0 +1,163 @@
+C51 COMPILER V9.52.0.0   TIMER                                                             05/24/2019 08:47:50 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE TIMER
+OBJECT MODULE PLACED IN .\Objects\Timer.obj
+COMPILER INVOKED BY: D:\c51v952\C51\BIN\C51.EXE Timer.c BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Timer.lst) OBJECT(.\O
+                    -bjects\Timer.obj)
+
+line level    source
+
+   1          #include <reg51.h>
+   2          #include <stdio.h>
+   3          
+   4          #include "Timer.h"
+   5          
+   6          #define uchar unsigned char
+   7          #define uint unsigned int
+   8          
+   9          
+  10          uint count = 0;
+  11          uchar sampleType = 0;
+  12          uchar Sys300ms_flag = 0, Sys500ms_flag = 0, Sys1s_flag = 0;
+  13          bit recvCmdFlag = 0;
+  14          
+  15          /*
+  16          format: 0x7e 0x01 0x02 0x7f                             // only temp
+  17                          0x7e 0x02 0x01 0x7f                             // only humi
+  18                          0x7e 0x01 0x01 0x7f                             // temp and humi//±»kill
+  19                          0x7e 0x02 0x02 0x7f                             // Stop
+  20                          other                                                   // Error
+  21          */
+  22          uchar recvCmd[CMD_LENGTH] = {0};
+  23          
+  24          uchar Parse_Cmd(uchar *recvCmd){
+  25   1              uchar ret = 0;
+  26   1                      
+  27   1              if (recvCmd[0] == 0x7e && recvCmd[3] == 0x7f) {
+  28   2                      if ((recvCmd[1] == 0x02) && (recvCmd[2] == 0x02)){
+  29   3                              ret = CMD_READ_STOP;
+  30   3                              return ret;
+  31   3                      }
+  32   2                      if (recvCmd[1] == 0x01) {
+  33   3                              ret += CMD_READ_TEMP;
+  34   3                      }
+  35   2                      if (recvCmd[2] == 0x01) {
+  36   3                              ret += CMD_READ_HUMI;
+  37   3                      }
+  38   2              } 
+  39   1              return ret;
+  40   1      }
+  41          
+  42          void UART_init(){
+  43   1              TMOD |= 0x20;                    
+  44   1              TH1=0xfd;         
+  45   1              TL1=0xfd;
+  46   1              TR1=1;            
+  47   1       
+  48   1              SM0=0;
+  49   1              SM1=1;            
+  50   1          REN=1;                
+  51   1              EA=1;         
+  52   1              ES=1;             
+  53   1      }
+  54          
+C51 COMPILER V9.52.0.0   TIMER                                                             05/24/2019 08:47:50 PAGE 2   
+
+  55          void UART_Send_Byte(uchar Byte)          
+  56          {
+  57   1              SBUF=Byte;      
+  58   1              while(!TI); 
+  59   1              TI=0;
+  60   1      }
+  61          
+  62          //putchar
+  63          char putchar(uchar c)
+  64          {
+  65   1          UART_Send_Byte(c);
+  66   1          return c;
+  67   1      }
+  68          
+  69          void UART_Send_String(uchar * Str)
+  70          {
+  71   1              while((*Str)!=0)        
+  72   1              {
+  73   2                      UART_Send_Byte(*Str);  
+  74   2                      Str++;                 
+  75   2              }
+  76   1      }
+  77          
+  78          void UART_Send_BytesArray(uchar * bytes, uchar len)
+  79          {
+  80   1              uchar i = 0;
+  81   1              for (i=0; i<len; i++) {
+  82   2                      UART_Send_Byte(bytes[i]);
+  83   2              }
+  84   1      }
+  85          
+  86          void UART_Interrupt() interrupt 4 {
+  87   1              static int i = 0;
+  88   1          if(RI)    
+  89   1          {
+  90   2              ES = 0;               
+  91   2              RI = 0;
+  92   2                      
+  93   2                      *(recvCmd + i) = SBUF;
+  94   2                      i++;
+  95   2                      if (i == CMD_LENGTH){           
+  96   3                              recvCmdFlag = 1;
+  97   3                              i = 0;
+  98   3                      }
+  99   2                      
+ 100   2              ES = 1;    
+ 101   2              }
+ 102   1      }
+ 103          
+ 104          
+ 105          void Timer0_init() {
+ 106   1              TMOD |= 0x01;
+ 107   1              TH0 = 0x27;
+ 108   1              TL0 = 0x10;
+ 109   1      //      TH0 = 0xfc;
+ 110   1      //      TL0 = 0x18;
+ 111   1              ET0 = 1;
+ 112   1              EA = 1;
+ 113   1              TR0 = 1;
+ 114   1      }
+ 115          
+ 116          // T = 10ms
+C51 COMPILER V9.52.0.0   TIMER                                                             05/24/2019 08:47:50 PAGE 3   
+
+ 117          void Timer0_interrupt() interrupt 1 {
+ 118   1              TH0 = 0x27;
+ 119   1              TL0 = 0x10;
+ 120   1      
+ 121   1              count++;
+ 122   1              if (count%30 == 0) {
+ 123   2                      Sys300ms_flag = 1;
+ 124   2              }
+ 125   1              if (count%50 == 1) {
+ 126   2                      Sys500ms_flag = 1;
+ 127   2              }
+ 128   1              if (count%100 == 2) {
+ 129   2                      Sys1s_flag = 1;
+ 130   2              }
+ 131   1              if (count > 256){               // 32.7s
+ 132   2                      count = 0;
+ 133   2              }
+ 134   1      }
+ 135          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    341    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

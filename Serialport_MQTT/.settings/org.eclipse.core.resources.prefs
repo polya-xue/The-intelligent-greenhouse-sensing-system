@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+encoding//src/com/yang/serialport/exception/ExceptionWriter.java=UTF-8
+encoding//src/com/yang/serialport/exception/SendDataToSerialPortFailure.java=UTF-8
+encoding//src/com/yang/serialport/manage/SerialPortManager.java=UTF-8
+encoding//src/com/yang/serialport/ui/MainFrame.java=UTF-8
+encoding//src/com/yang/serialport/utils/ByteUtils.java=UTF-8

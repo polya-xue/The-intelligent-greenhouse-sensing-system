@@ -1,0 +1,122 @@
+C51 COMPILER V9.52.0.0   DS18B20                                                           05/24/2019 08:47:49 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN .\Objects\DS18B20.obj
+COMPILER INVOKED BY: D:\c51v952\C51\BIN\C51.EXE DS18B20.c BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\DS18B20.lst) OBJECT
+                    -(.\Objects\DS18B20.obj)
+
+line level    source
+
+   1          #include <reg51.h>
+   2          #include <stdio.h>
+   3          
+   4          #include "DHT11.h"
+   5          #include "Timer.h"
+   6          
+   7          
+   8          #define uchar unsigned char
+   9          
+  10          
+  11          sbit DQ=P3^6;                           //数据传输线接单片机的相应的引脚 
+  12          unsigned char tempL=0;          //设全局变量
+  13          unsigned char tempH=0; 
+  14          unsigned char sdata;                    //测量到的温度的整数部分
+  15          unsigned char xiaoshu1;         //小数第一位
+  16          unsigned char xiaoshu2;         //小数第二位
+  17          unsigned char xiaoshu;          //两位小数
+  18          bit fg=1;                               //温度正负标志
+  19          
+  20          void delay(unsigned char i)
+  21          {
+  22   1              for(i;i>0;i--);
+  23   1      }
+  24          
+  25          
+  26          void Init_DS18B20(void) 
+  27          {
+  28   1              unsigned char x=0;
+  29   1              DQ=1;                                   //DQ先置高 
+  30   1              delay(8);                               //稍延时
+  31   1              DQ=0;                                   //发送复位脉冲 
+  32   1              delay(80);                              //延时（>480us) 
+  33   1              DQ=1;                                   //拉高数据线 
+  34   1              delay(5);                               //等待（15~60us) 
+  35   1              x=DQ;                                   //用X的值来判断初始化有没有成功，18B20存在的话X=0，否则X=1 
+  36   1              delay(20); 
+  37   1      }
+  38          
+  39          //读一个字节
+  40          ReadOneChar(void)                       //主机数据线先从高拉至低电平1us以上，再使数据线升为高电平，从而产生读信号
+  41          {
+  42   1              unsigned char i=0;              //每个读周期最短的持续时间为60us，各个读周期之间必须有1us以上的高电平恢复期
+  43   1              unsigned char dat=0; 
+  44   1              for (i=8;i>0;i--)               //一个字节有8位 
+  45   1              {
+  46   2                      DQ=1; 
+  47   2                      delay(1); 
+  48   2                      DQ=0;
+  49   2                      dat>>=1; 
+  50   2                      DQ=1; 
+  51   2                      if(DQ) 
+  52   2                      dat|=0x80; 
+  53   2                      delay(4);
+  54   2              } 
+C51 COMPILER V9.52.0.0   DS18B20                                                           05/24/2019 08:47:49 PAGE 2   
+
+  55   1              return(dat);
+  56   1      }
+  57          
+  58          //写一个字节
+  59          void WriteOneChar(unsigned char dat) 
+  60          { 
+  61   1              unsigned char i=0;              //数据线从高电平拉至低电平，产生写起始信号。15us之内将所需写的位送到数据线上，
+  62   1              for(i=8;i>0;i--)                //在15~60us之间对数据线进行采样，如果是高电平就写1，低写0发生。 
+  63   1              {
+  64   2                      DQ=0;                           //在开始另一个写周期前必须有1us以上的高电平恢复期。 
+  65   2                      DQ=dat&0x01; 
+  66   2                      delay(5); 
+  67   2                      DQ=1; 
+  68   2                      dat>>=1;
+  69   2              } 
+  70   1              delay(4);
+  71   1      }
+  72          
+  73          //读温度值（低位放tempL;高位放tempH;）
+  74          void ReadTemperature(void) 
+  75          { 
+  76   1              Init_DS18B20();                                         //初始化
+  77   1              WriteOneChar(0xcc);                             //跳过读序列号的操作
+  78   1              WriteOneChar(0x44);                             //启动温度转换
+  79   1              delay(125);                                             //转换需要一点时间，延时 
+  80   1              Init_DS18B20();                                         //初始化
+  81   1              WriteOneChar(0xcc);                             //跳过读序列号的操作 
+  82   1              WriteOneChar(0xbe);                             //读温度寄存器（头两个值分别为温度的低位和高位） 
+  83   1              tempL=ReadOneChar();                            //读出温度的低位LSB
+  84   1              tempH=ReadOneChar();                            //读出温度的高位MSB     
+  85   1              if(tempH>0x7f)                                  //最高位为1时温度是负
+  86   1              {
+  87   2                      tempL=~tempL;                                   //补码转换，取反加一
+  88   2                      tempH=~tempH+1;       
+  89   2                      fg=0;                                                   //读取温度为负时fg=0
+  90   2              }
+  91   1              sdata = tempL/16+tempH*16;              //整数部分
+  92   1              xiaoshu1 = (tempL&0x0f)*10/16;          //小数第一位
+  93   1              xiaoshu2 = (tempL&0x0f)*100/16%10;      //小数第二位
+  94   1              xiaoshu=xiaoshu1*10+xiaoshu2;           //小数两位
+  95   1      }
+  96          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    241    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
